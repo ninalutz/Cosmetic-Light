@@ -1,25 +1,177 @@
-<!DOCTYPE html> <html> <head> <meta charset=utf-8> <title>Geometry Tool</title> <style> body { margin: 0; } canvas { width: 100%; height: 100% } </style> </head>
+<!DOCTYPE html> <html lang = "en">
 
-<body>
+<!-- Libraries -->
 	<script src="js/three.js"></script>
 
+<!-- Head -->
+	<head>
+		<title>Geometry Tool</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				color: #ffffff;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				font-weight: bold;
+
+				background-color: #111111;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 0px; width: 100%;
+				padding: 5px;
+				z-index:100;
+			}
+
+		</style>
+	</head>
+
+<!-- Body of Page -->
+<body>
+	<div id="container"></div>
+
+<!-- Main Script -->
 	<script>
-		//config variables
-		var scene = new THREE.Scene();
-		var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-		var renderer = new THREE.WebGLRenderer(); renderer.setSize( window.innerWidth, window.innerHeight ); document.body.appendChild( renderer.domElement );
 
-		var geometry = new THREE.BoxGeometry( 1, 1, 1 ); var material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } ); var cube = new THREE.Mesh( geometry, material ); scene.add( cube ); camera.position.z = 5;
+	var renderer, scene, camera;
+	var objects = [];
 
-		//Animation function
-		function animate() {
-			requestAnimationFrame( animate ); renderer.render( scene, camera );
-		}
+	var WIDTH = window.innerWidth;
+	var HEIGHT = window.innerHeight;
 
-		//Calls in the loop
-		animate();
+	init();
+	animate();
 
-	</script>
+	function init() {
+
+		camera = new THREE.PerspectiveCamera(60, WIDTH / HEIGHT, 1, 200);
+		camera.position.z = 150;
+
+		scene = new THREE.Scene();
+		scene.background = new THREE.Color(0x111111);
+		scene.fog = new THREE.Fog(0x111111, 150, 200);
+
+		// var points = hilbert3D(new THREE.Vector3(0, 0, 0), 25.0, recursion, 0, 1, 2, 3, 4, 5, 6, 7);
+		// var spline = new THREE.CatmullRomCurve3(points);
+
+		// var samples = spline.getPoints(points.length * subdivisions);
+		// var geometrySpline = new THREE.BufferGeometry().setFromPoints(samples);
+
+		// var line = new THREE.Line(geometrySpline, new THREE.LineDashedMaterial({ color: 0xff0000, dashSize: 1, gapSize: 0.5 }));
+
+		// line.computeLineDistances();
+		// objects.push(line);
+		// scene.add(line);
+
+		var geometryCube = cube(50);
+
+		var lineSegments = new THREE.LineSegments(geometryCube, new THREE.LineBasicMaterial({ color: 0xffffff}));
+		lineSegments.computeLineDistances();
+
+		objects.push(lineSegments);
+		scene.add(lineSegments);
+
+		renderer = new THREE.WebGLRenderer({ antialias: true });
+		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setSize(WIDTH, HEIGHT);
+
+		var container = document.getElementById('container');
+		container.appendChild(renderer.domElement);
+
+
+		window.addEventListener('resize', onWindowResize, false);
+
+		console.log("Initialized");
+
+	}
+
+	function cube(size) {
+
+		var h = size * 0.5;
+
+		var geometry = new THREE.BufferGeometry();
+		var position = [];
+
+		position.push(
+		-h, -h, -h,
+		-h, h, -h,
+
+		-h, h, -h,
+		h, h, -h,
+
+		h, h, -h,
+		h, -h, -h,
+
+		h, -h, -h,
+		-h, -h, -h,
+
+		-h, -h, h,
+		-h, h, h,
+
+		-h, h, h,
+		h, h, h,
+
+		h, h, h,
+		h, -h, h,
+
+		h, -h, h,
+		-h, -h, h,
+
+		-h, -h, -h,
+		-h, -h, h,
+
+		-h, h, -h,
+		-h, h, h,
+
+		h, h, -h,
+		h, h, h,
+
+		h, -h, -h,
+		h, -h, h
+		);
+
+		geometry.addAttribute('position', new THREE.Float32BufferAttribute(position, 3));
+		return geometry;
+
+	}
+
+	function onWindowResize() {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize(window.innerWidth, window.innerHeight);
+
+	}
+
+	function animate() {
+
+		requestAnimationFrame(animate);
+
+		render();
+	}
+
+	function render() {
+
+		var time = Date.now() * 0.001;
+
+		scene.traverse(function(object) {
+			if (object.isLine) {
+				object.rotation.x = 0.25 * time;
+				object.rotation.y = 0.25 * time;
+			}
+
+		});
+
+		renderer.render(scene, camera);
+	}
+
+</script>
 </body>
 
 
