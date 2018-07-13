@@ -1,7 +1,9 @@
 <!DOCTYPE html> <html lang = "en">
 
+
 <!-- Libraries -->
 	<script src="js/three.js"></script>
+	<script src="js/libs/stats.min.js"></script>
 
 <!-- Head -->
 	<head>
@@ -38,16 +40,31 @@
 <!-- Main Script -->
 	<script>
 
-	var renderer, scene, camera;
+	/*
+	To do:
+		Make proper cube array
+		Do the point in cube function properly
+		Make continuous geometry for points at random
+		Try to get the geometry for the hinge points
+	*/
+
+	var renderer, scene, camera, stats, container;
 	var objects = [];
 
 	var WIDTH = window.innerWidth;
 	var HEIGHT = window.innerHeight;
+	var cubeSize = 55;
 
 	init();
 	animate();
 
-	function init() {
+	function init(){
+
+		container = document.createElement('div');
+		document.body.appendChild(container);
+
+		stats = new Stats();
+		container.appendChild(stats.dom);
 
 		camera = new THREE.PerspectiveCamera(60, WIDTH / HEIGHT, 1, 200);
 		camera.position.z = 150;
@@ -56,120 +73,158 @@
 		scene.background = new THREE.Color(0x111111);
 		scene.fog = new THREE.Fog(0x111111, 150, 200);
 
-		// var points = hilbert3D(new THREE.Vector3(0, 0, 0), 25.0, recursion, 0, 1, 2, 3, 4, 5, 6, 7);
-		// var spline = new THREE.CatmullRomCurve3(points);
+		//Cube
+		var geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
 
-		// var samples = spline.getPoints(points.length * subdivisions);
-		// var geometrySpline = new THREE.BufferGeometry().setFromPoints(samples);
+		var material = new THREE.MeshBasicMaterial({color: 0x111111, wireframe: false});
 
-		// var line = new THREE.Line(geometrySpline, new THREE.LineDashedMaterial({ color: 0xff0000, dashSize: 1, gapSize: 0.5 }));
+		var newCube = new THREE.Mesh(geometry, material);
 
-		// line.computeLineDistances();
-		// objects.push(line);
-		// scene.add(line);
+		// scene.add(newCube);
+		// objects.push(newCube);
 
-		var geometryCube = cube(50);
+		//Border for Cube
+		var cubeBorder = new THREE.LineSegments(cubeVertices(cubeSize), new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 30, gapSize: 10, linewidth: 2 }));
 
-		var lineSegments = new THREE.LineSegments(geometryCube, new THREE.LineBasicMaterial({ color: 0xffffff}));
-		lineSegments.computeLineDistances();
+		objects.push(cubeBorder);
+		scene.add(cubeBorder);
 
-		objects.push(lineSegments);
-		scene.add(lineSegments);
+		//testing pointinCube
+		var pt = new THREE.Vector3(20, 50, 50);
+		console.log(pointinCube(pt, newCube));
 
+		//Window and rendering
 		renderer = new THREE.WebGLRenderer({ antialias: true });
 		renderer.setPixelRatio(window.devicePixelRatio);
 		renderer.setSize(WIDTH, HEIGHT);
 
 		var container = document.getElementById('container');
 		container.appendChild(renderer.domElement);
-
-
 		window.addEventListener('resize', onWindowResize, false);
-
 		console.log("Initialized");
 
 	}
 
-	function cube(size) {
+	function pointinCube(pt,cube){
+		var vertices = cubeVerticesArray(cubeSize);
+		var xconst = false;
+		var p1 = vertices[0];
+		var p2 = vertices[3];
+		var p4 = vertices[1];
+		var p5 = vertices[4];
 
-		var h = size * 0.5;
+		var u = new THREE.Vector3(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
+		var v = new THREE.Vector3(p1.x - p4.x, p1.y - p4.y, p1.z - p4.z);
+		var w = new THREE.Vector3(p1.x - p5.x, p1.y - p5.y, p1.z - p5.z);
 
-		var geometry = new THREE.BufferGeometry();
-		var position = [];
 
-		position.push(
-		-h, -h, -h,
-		-h, h, -h,
+		if(dotProduct(u, p1) >= dotProduct(u, pt) && dotProduct(u, pt) >= dotProduct(u, p2)){
+			xconst = true;
+		}
+		//console.log(dotProduct(u, p1), dotProduct(u,pt), dotProduct(u, p2));
+		console.log(xconst);
 
-		-h, h, -h,
-		h, h, -h,
+		var yconst = dotProduct(v, p1) <= dotProduct(v, pt) >= dotProduct(v, p4);
+		var zconst = dotProduct(w, p1) <= dotProduct(w, pt) >= dotProduct(w, p5);
 
-		h, h, -h,
-		h, -h, -h,
-
-		h, -h, -h,
-		-h, -h, -h,
-
-		-h, -h, h,
-		-h, h, h,
-
-		-h, h, h,
-		h, h, h,
-
-		h, h, h,
-		h, -h, h,
-
-		h, -h, h,
-		-h, -h, h,
-
-		-h, -h, -h,
-		-h, -h, h,
-
-		-h, h, -h,
-		-h, h, h,
-
-		h, h, -h,
-		h, h, h,
-
-		h, -h, -h,
-		h, -h, h
-		);
-
-		geometry.addAttribute('position', new THREE.Float32BufferAttribute(position, 3));
-		return geometry;
-
+		if (yconst == true && xconst == true && zconst == true){
+			return true;
+		}
+		return false;
 	}
 
-	function onWindowResize() {
+	function dotProduct(pt1, pt2){
+		var dot = pt1.x*pt2.x + pt1.y*pt2.y + pt1.z*pt2.z;
+		return dot;
+	}
 
+	function onWindowResize(){
 		camera.aspect = window.innerWidth / window.innerHeight;
 		camera.updateProjectionMatrix();
-
 		renderer.setSize(window.innerWidth, window.innerHeight);
-
 	}
 
-	function animate() {
-
+	function animate(){
 		requestAnimationFrame(animate);
-
 		render();
 	}
 
-	function render() {
+	function render(){
 
-		var time = Date.now() * 0.001;
+		stats.begin();
+		var time = Date.now()* 0.001;
 
-		scene.traverse(function(object) {
-			if (object.isLine) {
-				object.rotation.x = 0.25 * time;
-				object.rotation.y = 0.25 * time;
-			}
-
+		scene.traverse(function(object){
+			object.rotation.x = 0.25 * time;
+			object.rotation.y = 0.25 * time;
 		});
 
 		renderer.render(scene, camera);
+		stats.end();
 	}
+
+	function cubeVerticesArray(size){
+		var h = size/2;
+		var vertices = [];
+		vertices.push(
+			new THREE.Vector3(-h, -h, -h),
+			new THREE.Vector3(-h, h, -h),
+			new THREE.Vector3(h, h, -h),
+			new THREE.Vector3(h, -h, -h),
+			new THREE.Vector3(-h, -h, h),
+			new THREE.Vector3(-h, h, h),
+			new THREE.Vector3(h, h, h),
+			new THREE.Vector3(h, -h, h)
+		);
+
+	return vertices;
+	}
+
+	function cubeVertices(size){
+		var h = size/2;
+		var geometry = new THREE.Geometry();
+		geometry.vertices.push(
+			new THREE.Vector3(-h, -h, -h),
+			new THREE.Vector3(-h, h, -h),
+
+			new THREE.Vector3(-h, h, -h),
+			new THREE.Vector3(h, h, -h),
+
+			new THREE.Vector3(h, h, -h),
+			new THREE.Vector3(h, -h, -h),
+
+			new THREE.Vector3(h, -h, -h),
+			new THREE.Vector3(-h, -h, -h),
+
+
+			new THREE.Vector3(-h, -h, h),
+			new THREE.Vector3(-h, h, h),
+
+			new THREE.Vector3(-h, h, h),
+			new THREE.Vector3(h, h, h),
+
+			new THREE.Vector3(h, h, h),
+			new THREE.Vector3(h, -h, h),
+
+			new THREE.Vector3(h, -h, h),
+			new THREE.Vector3(-h, -h, h),
+
+			new THREE.Vector3(-h, -h, -h),
+			new THREE.Vector3(-h, -h, h),
+
+			new THREE.Vector3(-h, h, -h),
+			new THREE.Vector3(-h, h, h),
+
+			new THREE.Vector3(h, h, -h),
+			new THREE.Vector3(h, h, h),
+
+			new THREE.Vector3(h, -h, -h),
+			new THREE.Vector3(h, -h, h)
+		);
+
+	return geometry;
+}
+
 
 </script>
 </body>
