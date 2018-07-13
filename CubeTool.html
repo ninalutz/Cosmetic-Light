@@ -42,10 +42,10 @@
 
 	/*
 	To do:
-		Make proper cube array
-		Do the point in cube function properly
 		Make continuous geometry for points at random
 		Try to get the geometry for the hinge points
+		Make more generic
+			Cube outline taking in geometry instead of size
 	*/
 
 	var renderer, scene, camera, stats, container;
@@ -84,14 +84,10 @@
 		// objects.push(newCube);
 
 		//Border for Cube
-		var cubeBorder = new THREE.LineSegments(cubeVertices(cubeSize), new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 30, gapSize: 10, linewidth: 2 }));
+		var cubeBorder = new THREE.LineSegments(cubeOutline(cubeSize), new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 30, gapSize: 10, linewidth: 2 }));
 
 		objects.push(cubeBorder);
 		scene.add(cubeBorder);
-
-		//testing pointinCube
-		var pt = new THREE.Vector3(20, 50, 50);
-		console.log(pointinCube(pt, newCube));
 
 		//Window and rendering
 		renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -107,26 +103,23 @@
 
 	function pointinCube(pt,cube){
 		var vertices = cubeVerticesArray(cubeSize);
-		var xconst = false;
+		//based on standard euclidean vertex names
 		var p1 = vertices[0];
 		var p2 = vertices[3];
 		var p4 = vertices[1];
 		var p5 = vertices[4];
 
+		//3 perpendicular axes
 		var u = new THREE.Vector3(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
 		var v = new THREE.Vector3(p1.x - p4.x, p1.y - p4.y, p1.z - p4.z);
 		var w = new THREE.Vector3(p1.x - p5.x, p1.y - p5.y, p1.z - p5.z);
 
+		//test if point is contained in all 3 axes
+		var xconst = dotProduct(u, p1) >= dotProduct(u, pt) && dotProduct(u, pt) >= dotProduct(u, p2);
+		var yconst = dotProduct(v, p1) >= dotProduct(v, pt) &&  dotProduct(v, pt)>= dotProduct(v, p4);
+		var zconst = dotProduct(w, p1) >= dotProduct(w, pt) && dotProduct(w, pt) >= dotProduct(w, p5);
 
-		if(dotProduct(u, p1) >= dotProduct(u, pt) && dotProduct(u, pt) >= dotProduct(u, p2)){
-			xconst = true;
-		}
-		//console.log(dotProduct(u, p1), dotProduct(u,pt), dotProduct(u, p2));
-		console.log(xconst);
-
-		var yconst = dotProduct(v, p1) <= dotProduct(v, pt) >= dotProduct(v, p4);
-		var zconst = dotProduct(w, p1) <= dotProduct(w, pt) >= dotProduct(w, p5);
-
+		//Return result
 		if (yconst == true && xconst == true && zconst == true){
 			return true;
 		}
@@ -164,6 +157,7 @@
 	}
 
 	function cubeVerticesArray(size){
+		//makes standard euclidian array
 		var h = size/2;
 		var vertices = [];
 		vertices.push(
@@ -180,7 +174,8 @@
 	return vertices;
 	}
 
-	function cubeVertices(size){
+	function cubeOutline(size){
+		//makes geometry to outline a cube
 		var h = size/2;
 		var geometry = new THREE.Geometry();
 		geometry.vertices.push(
