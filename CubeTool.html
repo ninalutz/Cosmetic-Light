@@ -54,6 +54,7 @@
 	var WIDTH = window.innerWidth;
 	var HEIGHT = window.innerHeight;
 	var cubeSize = 55;
+	var numMirrors = 4;
 
 	init();
 	animate();
@@ -84,10 +85,17 @@
 		// objects.push(newCube);
 
 		//Border for Cube
-		var cubeBorder = new THREE.LineSegments(cubeOutline(cubeSize), new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 30, gapSize: 10, linewidth: 2 }));
+		var cubeBorder = new THREE.LineSegments(cubeOutline(cubeSize), new THREE.LineBasicMaterial( { color: 0xffffff, opacity: 0.5 } ) );
 
 		objects.push(cubeBorder);
 		scene.add(cubeBorder);
+
+		var center = new THREE.Vector3(0, 0, -cubeSize/2);
+
+		var laserLines = new THREE.LineSegments(makeGeometry(center, numMirrors), new THREE.LineDashedMaterial({ color: 0xff00ff, dashSize: 1, gapSize: 2, linewidth: .5 }));
+
+		objects.push(laserLines);
+		scene.add(laserLines);
 
 		//Window and rendering
 		renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -101,8 +109,8 @@
 
 	}
 
-	function pointinCube(pt,cube){
-		var vertices = cubeVerticesArray(cubeSize);
+	function pointInSolid(pt,cube){
+		var vertices = cubeVerticesArray(cubeSize); // <-- needs to be adjusted but eh
 		//based on standard euclidean vertex names
 		var p1 = vertices[0];
 		var p2 = vertices[3];
@@ -219,6 +227,32 @@
 
 	return geometry;
 }
+
+	function makeGeometry(center, numMirrors){
+		var geometry = new THREE.Geometry();
+		geometry.vertices.push(center);
+
+		for(var i = 1; i<numMirrors; i++){
+			var pt1 = randomPointInCube(cubeSize);
+			var pt2 = randomPointInCube(cubeSize);
+			geometry.vertices.push(pt1);
+			geometry.vertices.push(pt1);
+			geometry.vertices.push(pt2);
+			geometry.vertices.push(pt2);
+		}
+		geometry.vertices.push(center);
+		return geometry;
+	}
+
+	function randomPointInCube(size){
+		console.log(getRndInteger(-size/2, size/2));
+		var pt = new THREE.Vector3(getRndInteger(-size/2, size/2), getRndInteger(-size/2, size/2), getRndInteger(-size/2, size/2));
+		return pt;
+	}
+
+	function getRndInteger(min, max) {
+		return Math.floor(Math.random() * (max - min + 1) ) + min;
+	}
 
 
 </script>
